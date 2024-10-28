@@ -2,7 +2,7 @@ import { encodeLnurl } from "@/utils";
 import { utils } from "@noble/secp256k1";
 import { NextRequest, NextResponse } from "next/server";
 
-export function POST(req: NextRequest){
+export function GET(req: NextRequest){
     //Get the host from request headers
     const { host }:any = req.headers;
 

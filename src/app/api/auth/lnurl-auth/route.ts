@@ -11,9 +11,13 @@ function verifySig(sig:any, k1:any, key:any) {
  return verify(sigB, k1B, key);
 }
 
-export function POST(req: NextRequest) {
- const { tag, k1, sig, key }:any = req.json();
-
+export function GET(req: NextRequest) {
+ //const { tag, k1, sig, key }:any = req.query;
+ const tag = req.nextUrl.searchParams.get("tag");
+ const k1 = req.nextUrl.searchParams.get("k1");
+ const sig = req.nextUrl.searchParams.get("sig");
+ const key = req.nextUrl.searchParams.get("key");
+ 
  if (tag == "login" && k1 && sig && key) {
    try {
      if (verifySig(sig, k1, key)) {

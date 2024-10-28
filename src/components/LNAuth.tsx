@@ -1,14 +1,17 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSession, signIn } from "next-auth/react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 
 const LNAuth = () => {
   const [lnurl, setLnurl] = useState<any>(null);
   const [k1, setK1] = useState<any>(null);
   const [pubkey, setPubkey] = useState<any>(null);
+  const { data: session, status }: any = useSession();
 
-  const { data: session, status }:any = useSession();
+  // Declare intervalId outside useEffect so it can be accessed across different scopes
+  let intervalId: any;
 
   const signInUser = async () => {
     try {
@@ -50,10 +53,9 @@ const LNAuth = () => {
         setK1(data.k1);
         setPubkey(data.pubkey);
       }
-      // Check if the user has been authenticated
+      // Clear the interval if user is authenticated
       if (session && session?.user && session?.user?.pubkey) {
-        // Clear the interval to stop polling
-        clearInterval(0);
+        clearInterval(intervalId);
       }
     } catch (error) {
       console.error("Error polling for verified response:", error);
@@ -65,8 +67,9 @@ const LNAuth = () => {
       console.log("k1 and pubkey are set");
       signInUser();
     } else {
-      const intervalId:any = setInterval(pollForVerifiedResponse, 2000);
-      return () => clearInterval(intervalId);
+      // Start polling and save the intervalId
+      intervalId = setInterval(pollForVerifiedResponse, 2000);
+      return () => clearInterval(intervalId); // Cleanup interval on component unmount
     }
   }, [pubkey, k1]);
 
@@ -76,20 +79,20 @@ const LNAuth = () => {
 
   return (
     <>
-        <div>
+      <div>
         {status === "loading" && <div>Loading...</div>}
         {status === "unauthenticated" && (
-            <div>
+          <div>
             <h1>Not signed in</h1>
-            <QRCodeSVG size={256} value={lnurl} />
-            </div>
+            <QRCodeCanvas size={256} value={lnurl} />
+          </div>
         )}
         {status === "authenticated" && session.user.pubkey && (
-            <div>
+          <div>
             <h1>Signed in with this node pubkey {session.user.pubkey}</h1>
-            </div>
+          </div>
         )}
-        </div>
+      </div>
     </>
   );
 };
