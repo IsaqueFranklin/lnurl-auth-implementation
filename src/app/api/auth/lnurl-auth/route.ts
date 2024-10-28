@@ -1,22 +1,32 @@
-import { encodeLnurl } from "@/utils";
-import { utils } from "@noble/secp256k1";
+import { utils, verify } from "@noble/secp256k1";
+import pending from "@/map";
 import { NextRequest, NextResponse } from "next/server";
 
-export function POST(req: NextRequest){
-    //Get the host from request headers
-    const { host }:any = req.headers;
+function verifySig(sig:any, k1:any, key:any) {
+ // Verify a secp256k1 signature
+ const sigB = utils.hexToBytes(sig);
+ const k1B = utils.hexToBytes(k1);
 
-    const generateK1 = utils.bytesToHex(utils.randomBytes(32));
-
-    //generate the lnurl-auth login URL using the full URL and generated k1 value
-    const fullUrl = `https://${host}/api/auth/lnurl-auth`;
-    const lnurl = generateLnurl(fullUrl, generateK1);
-
-    return NextResponse.json({ message: lnurl }, { status: 200 });
+ // Verify the signature using the secp256k1 library
+ return verify(sigB, k1B, key);
 }
 
-function generateLnurl(url: any, k1: any){
-    // Generate the lnurl-auth URL with the provided k1 value
-    // The login URL should include the tag, k1 value, and action
-    return encodeLnurl(`${url}?tag=login&k1=${k1}&action=login`);
+export function POST(req: NextRequest) {
+ const { tag, k1, sig, key }:any = req.json();
+
+ if (tag == "login" && k1 && sig && key) {
+   try {
+     if (verifySig(sig, k1, key)) {
+       // Update the pending map
+       pending.k1 = k1;
+       pending.pubkey = key;
+
+       return NextResponse.json({ message: "OK", k1, pubkey: key}, { status: 200 }); 
+     }
+   } catch (e) {
+     console.error(e);
+   }
+ }
+
+ return NextResponse.json({ message: 'FAIL'}, { status: 200 });
 }
